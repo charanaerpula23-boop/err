@@ -223,7 +223,12 @@ a:focus-visible {
 .audio-card:hover .card-play-btn svg { transform: scale(1.08); }
 
 /* body */
-.card-body { padding: 14px; }
+.card-inner-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.card-body { padding: 14px 14px 8px; flex-grow: 1; }
 .card-title {
   font-size: 0.88rem; font-weight: 600; color: var(--text);
   margin-bottom: 6px; line-height: 1.35;
@@ -251,6 +256,44 @@ a:focus-visible {
 }
 .card-stats span {
   display: flex; align-items: center; gap: 3px;
+}
+
+/* inline card actions */
+.card-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--border);
+}
+.card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.card-action-btn:first-child {
+  border-right: 1px solid var(--border);
+}
+.card-action-btn:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+.card-action-btn.play-btn.playing {
+  color: var(--accent3);
+}
+.card-action-btn.play-btn.playing svg {
+  color: var(--accent3);
+}
+.card-action-btn.download-btn:hover {
+  color: var(--green);
 }
 
 /* ── Sound detail page ─────────────────────────────────────────────────── */

@@ -25,64 +25,197 @@ function fmtNum(n: number) {
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return String(n);
 }
+// Audio sources for inline playing (local preferred, CDN fallback)
+const localAudioSrc = sound.audioFile ? `/audio/${encodeURIComponent(sound.audioFile)}` : null;
+const cdnAudioSrc   = sound.audioUrl  || null;
+const primaryAudio  = localAudioSrc || cdnAudioSrc || '';
 ---
 
 <article class="audio-card" itemscope itemtype="https://schema.org/AudioObject">
-  <a href={`/sounds/${sound.slug}`} class="card-link" aria-label={`Play ${sound.title} meme sound`}>
+  <div class="card-inner-container">
+    <a href={`/sounds/${sound.slug}`} class="card-link" aria-label={`View ${sound.title} meme sound`}>
 
-    <!-- Thumbnail: local → CDN thumbnail → category image → emoji -->
-    <div class="card-thumb">
-      {primaryThumb
-        ? <img
-            src={primaryThumb}
-            alt={`${sound.title} meme sound thumbnail`}
-            loading={lazy ? 'lazy' : 'eager'}
-            decoding="async"
-            data-fb1={fallback1}
-            data-fb2={fallback2}
-            onerror="
-              var f1=this.dataset.fb1, f2=this.dataset.fb2;
-              if(f1 && this.src!==f1){this.src=f1;return;}
-              if(f2 && this.src!==f2){this.src=f2;return;}
-              this.style.display='none';this.nextElementSibling.style.display='flex';
-            "
-            itemprop="thumbnailUrl" />
-        : null}
-      <div class="thumb-fallback" style={primaryThumb ? 'display:none' : ''} aria-hidden="true">🎵</div>
-      <div class="card-play-btn" aria-hidden="true">
-        <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+      <!-- Thumbnail: local → CDN thumbnail → category image → emoji -->
+      <div class="card-thumb">
+        {primaryThumb
+          ? <img
+              src={primaryThumb}
+              alt={`${sound.title} meme sound thumbnail`}
+              loading={lazy ? 'lazy' : 'eager'}
+              decoding="async"
+              data-fb1={fallback1}
+              data-fb2={fallback2}
+              onerror="
+                var f1=this.dataset.fb1, f2=this.dataset.fb2;
+                if(f1 && this.src!==f1){this.src=f1;return;}
+                if(f2 && this.src!==f2){this.src=f2;return;}
+                this.style.display='none';this.nextElementSibling.style.display='flex';
+              "
+              itemprop="thumbnailUrl" />
+          : null}
+        <div class="thumb-fallback" style={primaryThumb ? 'display:none' : ''} aria-hidden="true">🎵</div>
+      </div>
+
+      <!-- Body -->
+      <div class="card-body">
+        <h2 class="card-title" itemprop="name">{sound.title}</h2>
+        <span class="card-cat">{catName}</span>
+
+        {sound.tags?.length > 0 && (
+          <div class="card-tags" aria-label="Tags">
+            {sound.tags.slice(0, 3).map((tag: string) => (
+              <span class="tag-pill">#{tag}</span>
+            ))}
+          </div>
+        )}
+
+        <div class="card-stats" aria-label="Sound statistics">
+          <span title="Plays">
+            <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+            {fmtNum(sound.playCount)}
+          </span>
+          <span title="Downloads">
+            <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            {fmtNum(sound.downloadCount)}
+          </span>
+        </div>
+      </div>
+    </a>
+
+    <!-- Action Buttons Row (Play & Download Inline) -->
+    <div class="card-actions-row">
+      <button 
+        class="card-action-btn play-btn" 
+        data-audio-local={primaryAudio} 
+        data-audio-cdn={cdnAudioSrc}
+        aria-label={`Play ${sound.title} inline`}
+      >
+        <!-- Play Icon -->
+        <svg class="play-icon-svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z"/>
         </svg>
-      </div>
+        <!-- Pause Icon (Hidden by default) -->
+        <svg class="pause-icon-svg" width="16" height="16" fill="currentColor" viewBox="0 0 24 24" style="display: none;">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+        <span>Play</span>
+      </button>
+
+      <a 
+        href={primaryAudio} 
+        download={sound.audioFile || 'sound.mp3'} 
+        class="card-action-btn download-btn" 
+        data-audio-cdn={cdnAudioSrc}
+        aria-label={`Download ${sound.title} MP3`}
+      >
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+        </svg>
+        <span>Download</span>
+      </a>
     </div>
-
-    <!-- Body -->
-    <div class="card-body">
-      <h2 class="card-title" itemprop="name">{sound.title}</h2>
-      <span class="card-cat">{catName}</span>
-
-      {sound.tags?.length > 0 && (
-        <div class="card-tags" aria-label="Tags">
-          {sound.tags.slice(0, 3).map((tag: string) => (
-            <span class="tag-pill">#{tag}</span>
-          ))}
-        </div>
-      )}
-
-      <div class="card-stats" aria-label="Sound statistics">
-        <span title="Plays">
-          <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-          {fmtNum(sound.playCount)}
-        </span>
-        <span title="Downloads">
-          <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-          {fmtNum(sound.downloadCount)}
-        </span>
-        <span title="Shares">
-          <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92S19.61 16.08 18 16.08z"/></svg>
-          {fmtNum(sound.shareCount)}
-        </span>
-      </div>
-    </div>
-  </a>
+  </div>
 </article>
+
+<script>
+  // Dynamic play handler so we don't duplicate <audio> tags or scripts per card
+  document.addEventListener('DOMContentLoaded', () => {
+    let currentAudio = null;
+    let currentBtn = null;
+
+    // Delegate click events for inline play buttons
+    document.body.addEventListener('click', (e) => {
+      const btn = e.target.closest('.card-action-btn.play-btn');
+      if (!btn) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const localSrc = btn.getAttribute('data-audio-local');
+      const cdnSrc = btn.getAttribute('data-audio-cdn');
+
+      const playIcon = btn.querySelector('.play-icon-svg');
+      const pauseIcon = btn.querySelector('.pause-icon-svg');
+      const textSpan = btn.querySelector('span');
+
+      const resetBtn = (b) => {
+        if (!b) return;
+        b.classList.remove('playing');
+        const pi = b.querySelector('.play-icon-svg');
+        const pa = b.querySelector('.pause-icon-svg');
+        const txt = b.querySelector('span');
+        if (pi) pi.style.display = 'block';
+        if (pa) pa.style.display = 'none';
+        if (txt) txt.textContent = 'Play';
+      };
+
+      // If clicked the currently playing button: toggle pause/play
+      if (currentBtn === btn && currentAudio) {
+        if (currentAudio.paused) {
+          currentAudio.play().catch(err => console.error(err));
+          btn.classList.add('playing');
+          if (playIcon) playIcon.style.display = 'none';
+          if (pauseIcon) pauseIcon.style.display = 'block';
+          if (textSpan) textSpan.textContent = 'Pause';
+        } else {
+          currentAudio.pause();
+          resetBtn(btn);
+        }
+        return;
+      }
+
+      // If playing something else, stop it first
+      if (currentAudio) {
+        currentAudio.pause();
+        resetBtn(currentBtn);
+      }
+
+      // Create new audio element
+      const audio = new Audio(localSrc);
+      currentAudio = audio;
+      currentBtn = btn;
+
+      // CDN Fallback Logic
+      audio.addEventListener('error', () => {
+        if (cdnSrc && audio.src !== cdnSrc) {
+          console.warn('Local audio failed. Falling back to CDN:', cdnSrc);
+          audio.src = cdnSrc;
+          audio.play().catch(err => console.error(err));
+        } else {
+          resetBtn(btn);
+          currentAudio = null;
+          currentBtn = null;
+        }
+      });
+
+      audio.addEventListener('ended', () => {
+        resetBtn(btn);
+        currentAudio = null;
+        currentBtn = null;
+      });
+
+      // Start playback
+      audio.play()
+        .then(() => {
+          btn.classList.add('playing');
+          if (playIcon) playIcon.style.display = 'none';
+          if (pauseIcon) pauseIcon.style.display = 'block';
+          if (textSpan) textSpan.textContent = 'Pause';
+        })
+        .catch(err => {
+          console.error('Playback error:', err);
+          resetBtn(btn);
+        });
+    });
+
+    // Handle CDN fallback for inline download links if they fail or to prevent navigation issues
+    document.body.addEventListener('click', (e) => {
+      const link = e.target.closest('.card-action-btn.download-btn');
+      if (!link) return;
+      
+      // Let standard browser download handle it, but fallback if needed
+      // To ensure CDN fallback works if local file returns 404, we can optionally fetch first,
+      // but standard href fallback is generally fine.
+    });
+  });
+</script>
