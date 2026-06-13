@@ -6,7 +6,17 @@ interface Props {
 }
 const { sound, lazy = true } = Astro.props;
 
-const imgSrc = sound.thumbnailUrl || sound.categoryImageUrl || null;
+// 3-tier thumbnail: local file → CDN thumbnailUrl → categoryImageUrl → emoji
+const localThumb  = sound.thumbnailFile
+  ? `/thumbnails/${encodeURIComponent(sound.thumbnailFile)}`
+  : null;
+const cdnThumb    = sound.thumbnailUrl    || null;
+const catThumb    = sound.categoryImageUrl || null;
+const primaryThumb = localThumb || cdnThumb || catThumb || null;
+// onerror chain: if local fails → cdnThumb → catThumb → hide
+const fallback1   = cdnThumb  || catThumb || '';
+const fallback2   = catThumb  || '';
+
 const catSlug = sound.categories?.[0]?.slug || 'memes-trending-audios';
 const catName = sound.categories?.[0]?.name || 'Meme Sound';
 
@@ -20,15 +30,25 @@ function fmtNum(n: number) {
 <article class="audio-card" itemscope itemtype="https://schema.org/AudioObject">
   <a href={`/sounds/${sound.slug}`} class="card-link" aria-label={`Play ${sound.title} meme sound`}>
 
-    <!-- Thumbnail -->
+    <!-- Thumbnail: local → CDN thumbnail → category image → emoji -->
     <div class="card-thumb">
-      {imgSrc
-        ? <img src={imgSrc} alt={`${sound.title} meme sound thumbnail`}
-                loading={lazy ? 'lazy' : 'eager'} decoding="async"
-                onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
-                itemprop="thumbnailUrl" />
+      {primaryThumb
+        ? <img
+            src={primaryThumb}
+            alt={`${sound.title} meme sound thumbnail`}
+            loading={lazy ? 'lazy' : 'eager'}
+            decoding="async"
+            data-fb1={fallback1}
+            data-fb2={fallback2}
+            onerror="
+              var f1=this.dataset.fb1, f2=this.dataset.fb2;
+              if(f1 && this.src!==f1){this.src=f1;return;}
+              if(f2 && this.src!==f2){this.src=f2;return;}
+              this.style.display='none';this.nextElementSibling.style.display='flex';
+            "
+            itemprop="thumbnailUrl" />
         : null}
-      <div class="thumb-fallback" style={imgSrc ? 'display:none' : ''} aria-hidden="true">🎵</div>
+      <div class="thumb-fallback" style={primaryThumb ? 'display:none' : ''} aria-hidden="true">🎵</div>
       <div class="card-play-btn" aria-hidden="true">
         <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
           <path d="M8 5v14l11-7z"/>

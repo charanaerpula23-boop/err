@@ -49,6 +49,16 @@ function fmtDate(s: string) {
 
 const imgSrc = sound.thumbnailUrl || sound.categoryImageUrl || null;
 
+// Thumbnail: local → CDN thumbnailUrl → categoryImageUrl → emoji
+const localThumb   = sound.thumbnailFile
+  ? `/thumbnails/${encodeURIComponent(sound.thumbnailFile)}`
+  : null;
+const cdnThumb     = sound.thumbnailUrl    || null;
+const catThumb     = sound.categoryImageUrl || null;
+const primaryThumb = localThumb || cdnThumb || catThumb || null;
+const thumbFb1     = cdnThumb  || catThumb || '';
+const thumbFb2     = catThumb  || '';
+
 // Audio: local file preferred, CDN as fallback
 const localAudioSrc = sound.audioFile ? `/audio/${encodeURIComponent(sound.audioFile)}` : null;
 const cdnAudioSrc   = sound.audioUrl  || null;
@@ -75,11 +85,23 @@ const primaryAudio  = localAudioSrc || cdnAudioSrc || '';
     <!-- Sound Hero -->
     <section class="sound-hero" aria-labelledby="sound-title">
 
-      <!-- Thumbnail -->
+      <!-- Thumbnail: local → CDN → category image → emoji -->
       <div class="sound-thumb">
-        {imgSrc
-          ? <img src={imgSrc} alt={`${sound.title} meme sound`} loading="eager" decoding="async" />
-          : <div class="sound-thumb-fallback" aria-hidden="true">🎵</div>}
+        {primaryThumb
+          ? <img
+              src={primaryThumb}
+              alt={`${sound.title} meme sound`}
+              loading="eager" decoding="async"
+              data-fb1={thumbFb1}
+              data-fb2={thumbFb2}
+              onerror="
+                var f1=this.dataset.fb1,f2=this.dataset.fb2;
+                if(f1&&this.src!==f1){this.src=f1;return;}
+                if(f2&&this.src!==f2){this.src=f2;return;}
+                this.style.display='none';this.nextElementSibling.style.display='flex';
+              " />
+          : null}
+        <div class="sound-thumb-fallback" style={primaryThumb ? 'display:none' : ''} aria-hidden="true">🎵</div>
       </div>
 
       <!-- Info -->
