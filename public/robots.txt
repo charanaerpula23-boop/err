@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://erripuku.engineer/sitemap-index.xml
+
+# Crawl-delay for bots
+Crawl-delay: 1

@@ -1,0 +1,98 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AudioCard from '../../components/AudioCard.astro';
+import {
+  buildTagTitle, buildTagDescription, buildSchemaBreadcrumb, buildSchemaItemList
+} from '../../lib/seo.js';
+import soundsData from '../../data/sounds.json';
+
+export async function getStaticPaths() {
+  const sounds = soundsData as any[];
+
+  // Count all tags
+  const tagCount = new Map<string, number>();
+  sounds.forEach(s => {
+    (s.tags || []).forEach((t: string) => {
+      const k = t.toLowerCase();
+      tagCount.set(k, (tagCount.get(k) || 0) + 1);
+    });
+  });
+
+  // Generate pages for every unique tag (sorted by frequency)
+  const allTags = [...tagCount.entries()].sort((a, b) => b[1] - a[1]);
+
+  return allTags.map(([tagLower, _count]) => {
+    // Find original casing from first match
+    let originalTag = tagLower;
+    for (const s of sounds) {
+      const found = (s.tags || []).find((t: string) => t.toLowerCase() === tagLower);
+      if (found) { originalTag = found; break; }
+    }
+
+    const slug = tagLower.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const tagSounds = sounds.filter(s =>
+      (s.tags || []).some((t: string) => t.toLowerCase() === tagLower)
+    ).sort((a, b) => b.playCount - a.playCount);
+
+    return {
+      params: { tag: slug },
+      props:  { tagName: originalTag, tagSlug: slug, sounds: tagSounds },
+    };
+  });
+}
+
+const { tagName, tagSlug, sounds } = Astro.props as { tagName: string; tagSlug: string; sounds: any[] };
+
+const title       = buildTagTitle(tagName, sounds.length);
+const description = buildTagDescription(tagName, sounds.length);
+const schema      = [
+  buildSchemaBreadcrumb([
+    { name: 'Home', path: '/' },
+    { name: `#${tagName}`, path: `/tags/${tagSlug}` },
+  ]),
+  buildSchemaItemList(sounds, `/tags/${tagSlug}`),
+];
+---
+
+<BaseLayout {title} {description} {schema}>
+
+  <div class="container">
+
+    <nav aria-label="Breadcrumb" class="breadcrumb">
+      <a href="/">Home</a>
+      <span class="sep" aria-hidden="true">›</span>
+      <span aria-current="page">#{tagName}</span>
+    </nav>
+
+    <div class="page-hero">
+      <h1>
+        <span style="color:var(--accent3)">#</span>{tagName}
+        <br />Telugu Meme Sounds
+      </h1>
+      <p>{sounds.length} sound{sounds.length !== 1 ? 's' : ''} tagged &ldquo;{tagName}&rdquo; · Free MP3 download</p>
+    </div>
+
+    <div class="sounds-grid" style="margin-bottom:48px">
+      {sounds.map((s, i) => <AudioCard sound={s} lazy={i > 7} />)}
+    </div>
+
+    <!-- SEO text block -->
+    <div class="seo-text-block">
+      <h2>Telugu Meme Sounds Tagged #{tagName}</h2>
+      <p>
+        Find all Telugu meme sounds tagged <strong>#{tagName}</strong> at ErriPuku.engineer.
+        Download any audio for free as MP3 — no account needed. Use them as ringtones, WhatsApp tones, or meme content.
+      </p>
+    </div>
+
+  </div>
+</BaseLayout>
+
+<style>
+  .seo-text-block {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 32px; margin-bottom: 48px;
+  }
+  .seo-text-block h2 { font-size: 1.1rem; margin-bottom: 12px; }
+  .seo-text-block p { color: var(--text2); font-size: 0.88rem; line-height: 1.8; }
+</style>

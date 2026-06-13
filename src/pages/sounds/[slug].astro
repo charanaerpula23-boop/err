@@ -1,0 +1,280 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AudioCard from '../../components/AudioCard.astro';
+import {
+  buildSoundTitle, buildSoundDescription, buildKeywords,
+  buildSchemaAudio, buildSchemaBreadcrumb, SITE_URL
+} from '../../lib/seo.js';
+import soundsData from '../../data/sounds.json';
+
+export async function getStaticPaths() {
+  const sounds = soundsData as any[];
+  return sounds.map(sound => ({
+    params: { slug: sound.slug },
+    props:  { sound },
+  }));
+}
+
+const { sound } = Astro.props as { sound: any };
+
+// Related: same first category, exclude self, top 6 by playCount
+const sounds = soundsData as any[];
+const firstCatSlug = sound.categories?.[0]?.slug;
+const related = sounds
+  .filter(s => s.slug !== sound.slug && s.categories?.some((c: any) => c.slug === firstCatSlug))
+  .sort((a, b) => b.playCount - a.playCount)
+  .slice(0, 6);
+
+const title       = buildSoundTitle(sound.title.trim());
+const description = buildSoundDescription(sound);
+const keywords    = buildKeywords(sound);
+const ogImage     = sound.thumbnailUrl || sound.categoryImageUrl || `${SITE_URL}/og-default.jpg`;
+const schema      = [
+  buildSchemaAudio(sound),
+  buildSchemaBreadcrumb([
+    { name: 'Home',   path: '/' },
+    { name: sound.categories?.[0]?.name || 'Sounds', path: `/category/${firstCatSlug || 'memes-trending-audios'}` },
+    { name: sound.title.trim(), path: `/sounds/${sound.slug}` },
+  ]),
+];
+
+function fmtNum(n: number) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+function fmtDate(s: string) {
+  return new Date(s).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+const imgSrc = sound.thumbnailUrl || sound.categoryImageUrl || null;
+
+// Audio: local file preferred, CDN as fallback
+const localAudioSrc = sound.audioFile ? `/audio/${encodeURIComponent(sound.audioFile)}` : null;
+const cdnAudioSrc   = sound.audioUrl  || null;
+const primaryAudio  = localAudioSrc || cdnAudioSrc || '';
+---
+
+<BaseLayout {title} {description} {keywords} {ogImage} ogType="audio_object" {schema}>
+
+  <div class="container">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="Breadcrumb" class="breadcrumb">
+      <a href="/">Home</a>
+      <span class="sep" aria-hidden="true">›</span>
+      {sound.categories?.[0] && (
+        <>
+          <a href={`/category/${sound.categories[0].slug}`}>{sound.categories[0].name}</a>
+          <span class="sep" aria-hidden="true">›</span>
+        </>
+      )}
+      <span aria-current="page">{sound.title}</span>
+    </nav>
+
+    <!-- Sound Hero -->
+    <section class="sound-hero" aria-labelledby="sound-title">
+
+      <!-- Thumbnail -->
+      <div class="sound-thumb">
+        {imgSrc
+          ? <img src={imgSrc} alt={`${sound.title} meme sound`} loading="eager" decoding="async" />
+          : <div class="sound-thumb-fallback" aria-hidden="true">🎵</div>}
+      </div>
+
+      <!-- Info -->
+      <div class="sound-info">
+
+        <!-- Categories -->
+        <div class="sound-cats" aria-label="Categories">
+          {(sound.categories || []).map((c: any) => (
+            <a href={`/category/${c.slug}`} class="sound-cat-badge">{c.name}</a>
+          ))}
+        </div>
+
+        <h1 id="sound-title">{sound.title}</h1>
+
+        {sound.description && (
+          <p class="sound-description">{sound.description}</p>
+        )}
+
+        <!-- Stats -->
+        <div class="sound-stat-row" aria-label="Sound statistics">
+          <div class="sound-stat">
+            <strong>{fmtNum(sound.playCount)}</strong>
+            <span>Plays</span>
+          </div>
+          <div class="sound-stat">
+            <strong>{fmtNum(sound.downloadCount)}</strong>
+            <span>Downloads</span>
+          </div>
+          <div class="sound-stat">
+            <strong>{fmtNum(sound.shareCount)}</strong>
+            <span>Shares</span>
+          </div>
+          <div class="sound-stat">
+            <strong>{fmtNum(sound.likeCount)}</strong>
+            <span>Likes</span>
+          </div>
+        </div>
+
+        <!-- Player -->
+        <div class="audio-player-wrap" role="region" aria-label="Audio player">
+          <div class="player-controls">
+            <button class="play-pause-btn" id="play-btn" aria-label="Play or pause audio">
+              <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24" id="play-icon">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+            </button>
+            <div class="player-progress" id="progress-bar" role="slider" aria-label="Audio progress" aria-valuemin="0" aria-valuemax="100" tabindex="0">
+              <div class="player-fill" id="progress-fill"></div>
+            </div>
+            <span class="player-time" id="time-display">0:00 / 0:00</span>
+          </div>
+          <div class="player-actions">
+            <a href={primaryAudio} download={sound.audioFile || undefined} class="btn-primary" aria-label={`Download ${sound.title} MP3`}>
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+              </svg>
+              Download MP3
+            </a>
+            <button class="btn-secondary" id="share-btn" aria-label="Share this sound">
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92S19.61 16.08 18 16.08z"/>
+              </svg>
+              Share
+            </button>
+          </div>
+        </div>
+
+        <!-- Tags -->
+        {sound.tags?.length > 0 && (
+          <div>
+            <p style="font-size:0.78rem;color:var(--text3);margin-bottom:8px;">Tags</p>
+            <div class="tags-list" aria-label="Sound tags">
+              {sound.tags.map((tag: string) => (
+                <a href={`/tags/${encodeURIComponent(tag.toLowerCase().replace(/\s+/g,'-'))}`}
+                   class="tag-link">#{tag}</a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p style="font-size:0.7rem;color:var(--text3);margin-top:16px;">
+          Added: <time datetime={sound.createdAt}>{fmtDate(sound.createdAt)}</time>
+        </p>
+      </div>
+    </section>
+
+    <!-- FAQ (boosts rich results) -->
+    <section class="section" aria-labelledby="faq-heading">
+      <h2 id="faq-heading" class="section-title" style="margin-bottom:16px;">Frequently Asked Questions</h2>
+      <div itemscope itemtype="https://schema.org/FAQPage">
+        <details class="faq-item" itemscope itemtype="https://schema.org/Question" itemprop="mainEntity">
+          <summary itemprop="name">How to download {sound.title} meme sound?</summary>
+          <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+            <p itemprop="text">Click the "Download MP3" button above to save {sound.title} as an MP3 file. It's completely free — no signup required.</p>
+          </div>
+        </details>
+        <details class="faq-item" itemscope itemtype="https://schema.org/Question" itemprop="mainEntity">
+          <summary itemprop="name">Can I use {sound.title} as a WhatsApp or ringtone?</summary>
+          <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+            <p itemprop="text">Yes! Download {sound.title} as an MP3 and set it as your ringtone or WhatsApp notification tone.</p>
+          </div>
+        </details>
+        <details class="faq-item" itemscope itemtype="https://schema.org/Question" itemprop="mainEntity">
+          <summary itemprop="name">What category is {sound.title}?</summary>
+          <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+            <p itemprop="text">{sound.title} belongs to the {(sound.categories || []).map((c: any) => c.name).join(', ')} category on ErriPuku.engineer.</p>
+          </div>
+        </details>
+      </div>
+    </section>
+
+    <!-- Related sounds -->
+    {related.length > 0 && (
+      <section class="section" aria-labelledby="related-heading">
+        <div class="section-header">
+          <h2 class="section-title" id="related-heading">More {sound.categories?.[0]?.name || 'Meme'} Sounds</h2>
+          {firstCatSlug && <a href={`/category/${firstCatSlug}`} class="section-link">View all →</a>}
+        </div>
+        <div class="sounds-grid">
+          {related.map(s => <AudioCard sound={s} />)}
+        </div>
+      </section>
+    )}
+
+  </div>
+</BaseLayout>
+
+<!-- FAQ styles -->
+<style>
+  .faq-item {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 10px;
+  }
+  .faq-item summary {
+    font-weight: 600; cursor: pointer; font-size: 0.9rem;
+    list-style: none; display: flex; justify-content: space-between; align-items: center;
+  }
+  .faq-item summary::after { content: '+'; font-size: 1.2rem; color: var(--accent2); }
+  .faq-item[open] summary::after { content: '−'; }
+  .faq-item > div { padding-top: 10px; font-size: 0.85rem; color: var(--text2); line-height: 1.7; }
+</style>
+
+<script define:vars={{ localSrc: primaryAudio, cdnSrc: cdnAudioSrc, soundTitle: sound.title, pageUrl: `${SITE_URL}/sounds/${sound.slug}` }}>
+// Use local file; fall back to CDN if 404 or error
+const audio = new Audio(localSrc);
+audio.addEventListener('error', () => {
+  if (cdnSrc && audio.src !== cdnSrc) {
+    audio.src = cdnSrc;
+    audio.load();
+  }
+}, { once: true });
+const btn     = document.getElementById('play-btn');
+const icon    = document.getElementById('play-icon');
+const fill    = document.getElementById('progress-fill');
+const timeEl  = document.getElementById('time-display');
+const bar     = document.getElementById('progress-bar');
+const shareBtn = document.getElementById('share-btn');
+
+const PLAY_PATH  = 'M8 5v14l11-7z';
+const PAUSE_PATH = 'M6 19h4V5H6v14zm8-14v14h4V5h-4z';
+
+function fmt(s) {
+  if (!s || isNaN(s)) return '0:00';
+  return Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+}
+
+btn.addEventListener('click', () => {
+  if (audio.paused) { audio.play(); icon.querySelector('path').setAttribute('d', PAUSE_PATH); }
+  else { audio.pause(); icon.querySelector('path').setAttribute('d', PLAY_PATH); }
+});
+
+audio.addEventListener('timeupdate', () => {
+  const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
+  fill.style.width = pct + '%';
+  timeEl.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+});
+
+audio.addEventListener('ended', () => {
+  icon.querySelector('path').setAttribute('d', PLAY_PATH);
+  fill.style.width = '0%';
+  audio.currentTime = 0;
+});
+
+bar.addEventListener('click', e => {
+  const rect = bar.getBoundingClientRect();
+  audio.currentTime = ((e.clientX - rect.left) / rect.width) * (audio.duration || 0);
+});
+
+shareBtn.addEventListener('click', async () => {
+  if (navigator.share) {
+    await navigator.share({ title: soundTitle + ' - ErriPuku.engineer', url: pageUrl });
+  } else {
+    await navigator.clipboard.writeText(pageUrl);
+    shareBtn.textContent = '✓ Copied!';
+    setTimeout(() => shareBtn.textContent = 'Share', 2000);
+  }
+});
+</script>

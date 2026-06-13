@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AudioCard from '../../components/AudioCard.astro';
+import {
+  buildCategoryTitle, buildCategoryDescription, buildCategoryKeywords,
+  buildSchemaBreadcrumb, buildSchemaItemList, SITE_URL
+} from '../../lib/seo.js';
+import soundsData from '../../data/sounds.json';
+
+export async function getStaticPaths() {
+  const sounds = soundsData as any[];
+  const catMap = new Map<string, { name: string; slug: string; imageUrl: string | null }>();
+
+  sounds.forEach(s => {
+    (s.categories || []).forEach((c: any) => {
+      if (!catMap.has(c.slug)) {
+        catMap.set(c.slug, { name: c.name, slug: c.slug, imageUrl: c.imageUrl || null });
+      }
+    });
+  });
+
+  return [...catMap.values()].map(cat => ({
+    params: { slug: cat.slug },
+    props:  { cat, sounds: sounds.filter(s => s.categories?.some((c: any) => c.slug === cat.slug)) },
+  }));
+}
+
+const { cat, sounds } = Astro.props as { cat: any; sounds: any[] };
+const sorted = [...sounds].sort((a, b) => b.playCount - a.playCount);
+
+const title       = buildCategoryTitle(cat.name, sounds.length);
+const description = buildCategoryDescription(cat.name, sounds.length);
+const keywords    = buildCategoryKeywords(cat.name);
+const ogImage     = cat.imageUrl || `${SITE_URL}/og-default.jpg`;
+const schema      = [
+  buildSchemaBreadcrumb([
+    { name: 'Home', path: '/' },
+    { name: cat.name, path: `/category/${cat.slug}` },
+  ]),
+  buildSchemaItemList(sorted, `/category/${cat.slug}`),
+];
+---
+
+<BaseLayout {title} {description} {keywords} {ogImage} {schema}>
+
+  <!-- Page hero -->
+  <div class="page-hero-wrap" style="position:relative;overflow:hidden;">
+    {cat.imageUrl && (
+      <div style="position:absolute;inset:0;z-index:0">
+        <img src={cat.imageUrl} alt={cat.name} style="width:100%;height:100%;object-fit:cover;filter:blur(24px) brightness(0.25)" aria-hidden="true" />
+      </div>
+    )}
+    <div class="container" style="position:relative;z-index:1">
+      <nav aria-label="Breadcrumb" class="breadcrumb">
+        <a href="/">Home</a>
+        <span class="sep" aria-hidden="true">›</span>
+        <span aria-current="page">{cat.name}</span>
+      </nav>
+      <div class="page-hero">
+        {cat.imageUrl && (
+          <img src={cat.imageUrl} alt={cat.name}
+               style="width:80px;height:80px;border-radius:16px;object-fit:cover;margin:0 auto 16px;display:block;border:2px solid rgba(255,255,255,0.15)"
+               loading="eager" />
+        )}
+        <h1>{cat.name} Telugu Meme Sounds</h1>
+        <p>{sounds.length} sounds · Free download as MP3</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <section aria-labelledby="cat-sounds-heading" style="padding:32px 0 60px">
+      <h2 id="cat-sounds-heading" class="sr-only">All {cat.name} sounds</h2>
+      <div class="sounds-grid">
+        {sorted.map((s, i) => <AudioCard sound={s} lazy={i > 7} />)}
+      </div>
+    </section>
+
+    <!-- SEO text block -->
+    <div class="seo-text-block">
+      <h2>Download {cat.name} Telugu Meme Sounds for Free</h2>
+      <p>
+        Browse {sounds.length}+ {cat.name} Telugu meme sounds at ErriPuku.engineer. Stream any audio directly
+        in your browser or download as MP3 for free — no account needed. Perfect for WhatsApp status,
+        ringtones, and meme videos.
+      </p>
+      <p>
+        Popular {cat.name} sounds include: {sorted.slice(0, 5).map(s => s.title).join(', ')}, and many more.
+        All sounds are updated regularly with the latest viral Telugu meme audios.
+      </p>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .seo-text-block {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px 32px; margin-bottom: 48px;
+  }
+  .seo-text-block h2 { font-size: 1.1rem; margin-bottom: 12px; }
+  .seo-text-block p { color: var(--text2); font-size: 0.88rem; line-height: 1.8; margin-bottom: 10px; }
+</style>

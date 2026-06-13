@@ -1,0 +1,126 @@
+---
+import { SITE_URL, SITE_NAME } from '../lib/seo.js';
+
+interface Props {
+  title: string;
+  description: string;
+  keywords?: string;
+  ogImage?: string;
+  ogType?: string;
+  canonical?: string;
+  schema?: object | object[];
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description,
+  keywords = '',
+  ogImage = `${SITE_URL}/og-default.jpg`,
+  ogType = 'website',
+  canonical,
+  schema,
+  noindex = false,
+} = Astro.props;
+
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, SITE_URL).href;
+const schemaArr = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary SEO -->
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  {keywords && <meta name="keywords" content={keywords} />}
+  <link rel="canonical" href={canonicalUrl} />
+  {noindex && <meta name="robots" content="noindex, nofollow" />}
+  {!noindex && <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />}
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content={ogType} />
+  <meta property="og:url"         content={canonicalUrl} />
+  <meta property="og:title"       content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image"       content={ogImage} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name"   content={SITE_NAME} />
+  <meta property="og:locale"      content="en_US" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image"       content={ogImage} />
+
+  <!-- Tech -->
+  <meta name="theme-color" content="#7c3aed" />
+  <meta name="generator" content={Astro.generator} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Schema.org JSON-LD -->
+  {schemaArr.map(s => (
+    <script type="application/ld+json" set:html={JSON.stringify(s)} />
+  ))}
+
+  <link rel="stylesheet" href="/styles/global.css" />
+</head>
+<body>
+
+  <!-- ── Header ────────────────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/" class="logo" aria-label="ErriPuku Home">
+        <span class="logo-icon">🎵</span>
+        <span class="logo-text">ErriPuku<span class="logo-tld">.engineer</span></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="/">Home</a>
+        <a href="/category/memes-trending-audios">Trending</a>
+        <a href="/category/18-meme-sounds">18+</a>
+      </nav>
+      <form class="header-search" action="/" method="get" role="search">
+        <label for="site-search" class="sr-only">Search sounds</label>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input id="site-search" type="search" name="q" placeholder="Search 484+ meme sounds…" autocomplete="off" />
+      </form>
+    </div>
+  </header>
+
+  <!-- ── Page content ───────────────────────────────────────────────────── -->
+  <main id="main-content">
+    <slot />
+  </main>
+
+  <!-- ── Footer ────────────────────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="logo-icon">🎵</span>
+        <strong>ErriPuku.engineer</strong>
+        <p>484+ free Telugu meme sounds, dialogues &amp; ringtones.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer navigation">
+        <a href="/">Home</a>
+        <a href="/category/memes-trending-audios">Trending</a>
+        <a href="/category/sunil">Sunil</a>
+        <a href="/category/mahesh-babu">Mahesh Babu</a>
+        <a href="/category/chiranjeevi">Chiranjeevi</a>
+        <a href="/category/18-meme-sounds">18+ Sounds</a>
+      </nav>
+      <p class="footer-copy">&copy; {new Date().getFullYear()} ErriPuku.engineer — Telugu Meme Sounds Free Download</p>
+    </div>
+  </footer>
+
+</body>
+</html>

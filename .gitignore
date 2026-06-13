@@ -1,0 +1,23 @@
+# Build output
+dist/
+.astro/
+
+# Dependencies
+node_modules/
+
+# Large media — served from CDN fallback in production
+# To self-host audio, copy MP3s manually to public/audio/ on your server
+public/audio/
+
+# Thumbnails are small (26 files) — included in repo
+# public/thumbnails/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.local
+
+# Logs
+npm-debug.log*

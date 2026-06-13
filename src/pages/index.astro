@@ -1,0 +1,155 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AudioCard from '../components/AudioCard.astro';
+import {
+  buildHomeTitle, buildHomeDescription, buildHomeKeywords,
+  buildSchemaWebsite, buildSchemaItemList, SITE_URL
+} from '../lib/seo.js';
+import soundsRaw from '../data/sounds.json';
+
+const sounds = soundsRaw as any[];
+
+// Build unique categories
+const categoryMap = new Map<string, { name: string; slug: string; imageUrl: string | null; count: number }>();
+sounds.forEach(s => {
+  (s.categories || []).forEach((c: any) => {
+    const k = c.slug || c.name;
+    if (!categoryMap.has(k)) {
+      categoryMap.set(k, { name: c.name, slug: c.slug || k, imageUrl: c.imageUrl || null, count: 0 });
+    }
+    categoryMap.get(k)!.count++;
+  });
+});
+const categories = [...categoryMap.values()].sort((a, b) => b.count - a.count);
+
+// Top sounds by plays
+const featured = [...sounds].sort((a, b) => b.playCount - a.playCount).slice(0, 12);
+
+// All sounds sorted by plays (for JS-filtered grid)
+const allSounds = [...sounds].sort((a, b) => b.playCount - a.playCount);
+
+const title = buildHomeTitle();
+const description = buildHomeDescription();
+const keywords = buildHomeKeywords();
+const schema = [buildSchemaWebsite(), buildSchemaItemList(allSounds, '/')];
+
+function fmtNum(n: number) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+const totalPlays = sounds.reduce((s, d) => s + d.playCount, 0);
+const totalDownloads = sounds.reduce((s, d) => s + d.downloadCount, 0);
+---
+
+<BaseLayout {title} {description} {keywords} {schema}>
+
+  <!-- Hero -->
+  <section class="hero" aria-labelledby="hero-heading">
+    <div class="container">
+      <div class="hero-badge">🎵 484+ Telugu Meme Sounds</div>
+      <h1 id="hero-heading">Telugu Meme Sounds<br />Free Download</h1>
+      <p>Stream and download viral Telugu meme audios, movie dialogues &amp; ringtones. All free — no signup needed.</p>
+      <div class="hero-stats">
+        <div><strong>{sounds.length}</strong> sounds</div>
+        <div><strong>{fmtNum(totalPlays)}</strong> total plays</div>
+        <div><strong>{fmtNum(totalDownloads)}</strong> downloads</div>
+        <div><strong>{categories.length}</strong> categories</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container">
+
+    <!-- Search -->
+    <div class="home-search-wrap" role="search">
+      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+      <label for="home-search" class="sr-only">Search Telugu meme sounds</label>
+      <input id="home-search" type="search" placeholder="Search 484+ Telugu meme sounds…" autocomplete="off" aria-label="Search meme sounds" />
+    </div>
+    <p id="search-count" aria-live="polite"></p>
+
+    <!-- Categories -->
+    <section class="section" aria-labelledby="cats-heading">
+      <div class="section-header">
+        <h2 class="section-title" id="cats-heading">Browse Categories</h2>
+      </div>
+      <div class="categories-grid">
+        {categories.map(cat => (
+          <a href={`/category/${cat.slug}`} class="cat-card" aria-label={`${cat.name} — ${cat.count} sounds`}>
+            {cat.imageUrl
+              ? <img src={cat.imageUrl} alt={cat.name} loading="lazy" />
+              : <div class="cat-fallback">🎭</div>}
+            <div class="cat-card-overlay">
+              <div>
+                <div class="cat-card-name">{cat.name}</div>
+                <div class="cat-card-count">{cat.count} sounds</div>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <!-- Featured / Trending -->
+    <section class="section" aria-labelledby="trending-heading">
+      <div class="section-header">
+        <h2 class="section-title" id="trending-heading">🔥 Trending Sounds</h2>
+        <a href="/category/memes-trending-audios" class="section-link">View all →</a>
+      </div>
+      <div class="sounds-grid">
+        {featured.map((s, i) => (
+          <AudioCard sound={s} lazy={i > 3} />
+        ))}
+      </div>
+    </section>
+
+    <!-- All sounds (searchable) -->
+    <section class="section" aria-labelledby="all-heading">
+      <div class="section-header">
+        <h2 class="section-title" id="all-heading">All Sounds</h2>
+      </div>
+      <div class="sounds-grid" id="all-sounds-grid">
+        {allSounds.map((s, i) => (
+          <div class="sound-search-item"
+               data-title={s.title.toLowerCase()}
+               data-tags={(s.tags || []).join(' ').toLowerCase()}
+               data-cats={(s.categories || []).map((c: any) => c.name || c).join(' ').toLowerCase()}>
+            <AudioCard sound={s} lazy={i > 11} />
+          </div>
+        ))}
+      </div>
+    </section>
+
+  </div>
+</BaseLayout>
+
+<script>
+// Client-side search over all sounds
+const input   = document.getElementById('home-search') as HTMLInputElement;
+const count   = document.getElementById('search-count')!;
+const items   = document.querySelectorAll<HTMLElement>('.sound-search-item');
+const total   = items.length;
+
+function updateSearch() {
+  const q = input.value.toLowerCase().trim();
+  let visible = 0;
+  items.forEach(item => {
+    const match = !q
+      || (item.dataset.title || '').includes(q)
+      || (item.dataset.tags  || '').includes(q)
+      || (item.dataset.cats  || '').includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  count.textContent = q ? `Showing ${visible} of ${total} sounds for "${input.value}"` : '';
+}
+
+input.addEventListener('input', updateSearch);
+
+// Pre-fill from URL ?q=
+const urlQ = new URLSearchParams(window.location.search).get('q');
+if (urlQ) { input.value = urlQ; updateSearch(); }
+</script>
