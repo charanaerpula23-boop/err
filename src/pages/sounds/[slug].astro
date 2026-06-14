@@ -120,25 +120,7 @@ const primaryAudio  = localAudioSrc || cdnAudioSrc || '';
           <p class="sound-description">{sound.description}</p>
         )}
 
-        <!-- Stats -->
-        <div class="sound-stat-row" aria-label="Sound statistics">
-          <div class="sound-stat">
-            <strong>{fmtNum(sound.playCount)}</strong>
-            <span>Plays</span>
-          </div>
-          <div class="sound-stat">
-            <strong>{fmtNum(sound.downloadCount)}</strong>
-            <span>Downloads</span>
-          </div>
-          <div class="sound-stat">
-            <strong>{fmtNum(sound.shareCount)}</strong>
-            <span>Shares</span>
-          </div>
-          <div class="sound-stat">
-            <strong>{fmtNum(sound.likeCount)}</strong>
-            <span>Likes</span>
-          </div>
-        </div>
+
 
         <!-- Player -->
         <div class="audio-player-wrap" role="region" aria-label="Audio player">
